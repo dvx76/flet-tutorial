@@ -5,9 +5,9 @@ import requests
 
 
 @dataclass
-class Post:
+class BlogPost:
     id: int
-    username: str
+    author: str
     created: datetime
     title: str
     body: str
@@ -17,7 +17,7 @@ class Post:
             self.created = datetime.fromisoformat(self.created)
 
 
-class Client:
+class FlaskrClient:
     url = "http://127.0.0.1:5000"
 
     def __init__(self):
@@ -28,26 +28,36 @@ class Client:
         self.session.auth = (username, password)
         self.authenticated = True
 
-    def posts(self) -> list[Post]:
+    def posts(self) -> list[BlogPost]:
         print("Gettings posts")
         response = self.session.get(f"{self.url}/posts")
         response.raise_for_status()
         data = response.json()
         print(f"Got {len(data)} posts")
-        return [Post(**post_data) for post_data in data]
+        return [BlogPost(**d) for d in data]
 
-    def new_post(self, title: str, body: str):
+    def new_post(self, title: str, body: str) -> BlogPost:
+        print("Creating new post")
         response = self.session.post(
             f"{self.url}/posts", json={"title": title, "body": body}
         )
         response.raise_for_status()
+        post = BlogPost(**response.json())
+        print(f"New post created with ID {post.id}")
+        return post
 
-    def edit_post(self, post_id: int, title: str, body: str):
+    def edit_post(self, post_id: int, title: str, body: str) -> BlogPost:
+        print(f"Updating post with ID {post_id}")
         response = self.session.put(
             f"{self.url}/posts/{post_id}", json={"title": title, "body": body}
         )
         response.raise_for_status()
+        post = BlogPost(**response.json())
+        print(f"Post with ID {post.id} updated")
+        return post
 
     def delete_post(self, post_id: int):
+        print(f"Deleting post with ID {post_id}")
         response = self.session.delete(f"{self.url}/posts/{post_id}")
         response.raise_for_status()
+        print(f"Post with ID {post_id} deleted")
