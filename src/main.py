@@ -56,6 +56,7 @@ class FlaskrApp(ft.Column):
         super().__init__()
         self.client = client
         self.username = ""
+        self.user_info = ft.Text()
         self.new_post_button = ft.ElevatedButton(
             text="New Post", on_click=self.new_post, disabled=True
         )
@@ -63,12 +64,24 @@ class FlaskrApp(ft.Column):
         self.controls = [
             ft.Row(
                 controls=[
+                    self.user_info,
                     ft.Text(
                         value="FlaskR Blog",
                         theme_style=ft.TextThemeStyle.HEADLINE_LARGE,
                     ),
-                    ft.IconButton(icon=ft.Icons.SETTINGS, on_click=self.enter_creds),
+                    ft.Row(
+                        [
+                            ft.IconButton(
+                                icon=ft.Icons.REFRESH, on_click=lambda e: self.refresh()
+                            ),
+                            ft.IconButton(
+                                icon=ft.Icons.SETTINGS, on_click=self.enter_creds
+                            ),
+                        ],
+                        spacing=0,
+                    ),
                 ],
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             ),
             self.new_post_button,
             self.posts_list_view,
@@ -93,6 +106,7 @@ class FlaskrApp(ft.Column):
             self.username = str(username_field.value)
             self.client.set_auth(self.username, str(password_field.value))
             self.new_post_button.disabled = False
+            self.user_info.value = f"Logged in as: {self.username}"
             self.refresh()
             self.page.close(dialog)
 
