@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Iterator
 
 import requests
 
@@ -28,13 +29,24 @@ class FlaskrClient:
         self.session.auth = (username, password)
         self.authenticated = True
 
-    def posts(self) -> list[BlogPost]:
-        print("Gettings posts")
-        response = self.session.get(f"{self.url}/posts")
-        response.raise_for_status()
-        data = response.json()
-        print(f"Got {len(data)} posts")
-        return [BlogPost(**d) for d in data]
+    def posts(self) -> Iterator[BlogPost]:
+        print("Getting posts")
+        next_url = f"{self.url}/posts"
+
+        while next_url:
+            response = self.session.get(next_url)
+            response.raise_for_status()
+            data = response.json()
+
+            items = data["items"]
+            print(f"Got {len(items)} posts from current page")
+
+            # Yield each post individually
+            for item in items:
+                yield BlogPost(**item)
+
+            # Get the next page URL, if it exists
+            next_url = data.get("_links", {}).get("next")
 
     def new_post(self, title: str, body: str) -> BlogPost:
         print("Creating new post")

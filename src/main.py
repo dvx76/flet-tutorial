@@ -1,8 +1,12 @@
+import threading
+from itertools import islice
 from typing import Callable, Optional
 
 import flet as ft
 
 from flaskrclient import BlogPost, FlaskrClient
+
+semaphore = threading.Semaphore()
 
 
 class PostView(ft.Column):
@@ -61,7 +65,12 @@ class FlaskrApp(ft.Column):
             text="New Post", on_click=self.new_post, disabled=True
         )
         self.expand = True
-        self.posts_list_view = ft.Column(scroll=ft.ScrollMode.ALWAYS, expand=True)
+        self.posts_list_view = ft.Column(
+            scroll=ft.ScrollMode.ALWAYS,
+            on_scroll=self.load_posts_on_scroll,
+            expand=True,
+        )
+        self.posts_iterator = []
         self.controls = [
             ft.Row(
                 controls=[
@@ -89,18 +98,36 @@ class FlaskrApp(ft.Column):
         ]
 
     def refresh(self):
-        postview_list = []
-        for post in self.client.posts():
+        self.posts_iterator = self.client.posts()
+        self.load_more_posts()
+        self.load_more_posts()
+
+    def load_more_posts(self):
+        batch = list(islice(self.posts_iterator, 15))
+
+        if not batch:
+            return False
+
+        for post in batch:
             if self.client.authenticated and self.username == post.author:
-                postview_list.append(
+                self.posts_list_view.controls.append(
                     PostView(
                         post=post, on_edit=self.edit_post, on_delete=self.delete_post
                     )
                 )
             else:
-                postview_list.append(PostView(post=post))
-        self.posts_list_view.controls = postview_list
+                self.posts_list_view.controls.append(PostView(post=post))
+
         self.update()
+        return True
+
+    def load_posts_on_scroll(self, e: ft.OnScrollEvent):
+        if e.pixels >= e.max_scroll_extent - 100:
+            if semaphore.acquire(blocking=False):
+                try:
+                    self.load_more_posts()
+                finally:
+                    semaphore.release()
 
     def enter_creds(self, e):
         def set_creds(e):
