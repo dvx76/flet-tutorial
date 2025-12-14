@@ -60,7 +60,8 @@ class FlaskrApp(ft.Column):
         self.new_post_button = ft.ElevatedButton(
             text="New Post", on_click=self.new_post, disabled=True
         )
-        self.posts_list_view = ft.Column()
+        self.expand = True
+        self.posts_list_view = ft.Column(scroll=ft.ScrollMode.ALWAYS, expand=True)
         self.controls = [
             ft.Row(
                 controls=[
